@@ -1,0 +1,4 @@
+provider "proxmox" {
+  # Configuration options
+}
+
