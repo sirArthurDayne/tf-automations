@@ -8,5 +8,5 @@
 .terraform.lock.hcl
 tfplan
 
-
+proxmox/citadel.tfvars
 proxmox/*.tfvars

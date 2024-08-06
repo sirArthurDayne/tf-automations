@@ -9,10 +9,12 @@ terraform {
 
 provider "proxmox" {
   # Configuration options
-  endpoint=""
-  api_token=""
+  endpoint=var.pve_api_endpoint
+  api_token=var.pve_api_token
   insecure = true #selfcert = true
   ssh {
+      agent = true
+      username = "terraform"
   }
 }
 
