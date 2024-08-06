@@ -7,3 +7,12 @@ terraform {
   }
 }
 
+provider "proxmox" {
+  # Configuration options
+  endpoint=""
+  api_token=""
+  insecure = true #selfcert = true
+  ssh {
+  }
+}
+
