@@ -1,7 +1,12 @@
-*.tfvars
-./azure/*.tfvars
-./proxmox/*.tfvars
+**/.terraform/*
 
-./proxmox/tfplan
-./proxmox/.terraform/
-./proxmox/.terraform.lock.hcl
+*.tfvars
+*.tfvars.json
+*.tfstate
+*.tfstate.*
+
+.terraform.lock.hcl
+tfplan
+
+
+proxmox/*.tfvars
