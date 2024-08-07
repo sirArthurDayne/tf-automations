@@ -14,7 +14,8 @@ provider "proxmox" {
   insecure = true #selfcert = true
   ssh {
       agent = true
-      username = "terraform"
+      # username = ""
+      # password = ""
   }
 }
 

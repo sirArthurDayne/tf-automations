@@ -7,7 +7,7 @@ resource "proxmox_virtual_environment_download_file" "ubuntu_cloud_image" {
 
 
 resource "proxmox_virtual_environment_vm" "vm_cloudimage_demo" {
-    name = "vm_cloudimage_demo"
+    name = "corintia-demo"
     description = "test deployment based on cloud_image"
     vm_id = 2000
     node_name = var.pve_target_node
@@ -23,6 +23,7 @@ resource "proxmox_virtual_environment_vm" "vm_cloudimage_demo" {
   stop_on_destroy = true
 
     initialization {
+      datastore_id = "local-zfs"
       user_account {
         username = "ubuntu"
         password = "calidad18!"
@@ -51,6 +52,7 @@ resource "proxmox_virtual_environment_vm" "vm_cloudimage_demo" {
 
     disk {
       datastore_id = "local-zfs"
+      # file_format = "qcow2"
       file_id = proxmox_virtual_environment_download_file.ubuntu_cloud_image.id
       interface = "virtio0"
       iothread = true
