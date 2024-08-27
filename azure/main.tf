@@ -4,59 +4,47 @@ resource "random_string" "rand_suffix" {
   upper   = false
 }
 
-resource "azurerm_resource_group" "rg_prod" {
-  name     = "rg-${var.az_enviroment}-${var.az_project_name}"
+resource "azurerm_resource_group" "rg" {
+  name     = "rg-${var.az_project_name}"
   location = var.az_region
   tags     = var.deploy_tags
 }
 
-resource "azurerm_virtual_network" "vnet_prod" {
-  name                = "vn-${var.az_enviroment}-${var.az_project_name}"
+resource "azurerm_virtual_network" "vnet" {
+  name                = "vn-${var.az_project_name}"
   address_space       = [var.az_vn]
-  resource_group_name = azurerm_resource_group.rg_prod.name
-  location            = azurerm_resource_group.rg_prod.location
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
   tags                = var.deploy_tags
 }
 
 
-resource "azurerm_subnet" "subnet_prod" {
-  name                 = "subnet-${var.az_enviroment}-${var.az_project_name}"
-  resource_group_name  = azurerm_resource_group.rg_prod.name
-  virtual_network_name = azurerm_virtual_network.vnet_prod.name
-  address_prefixes     = ["172.16.50.0/24"]
+resource "azurerm_subnet" "subnet" {
+  name                 = "subnet-${var.az_project_name}"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = [var.az_subnetrange]
 }
 
-resource "azurerm_public_ip" "publicip_prod" {
+resource "azurerm_public_ip" "publicip" {
   #explicits add dependency to this resource but doesnt access any of that resources data in its arguments.
   depends_on = [
-    azurerm_virtual_network.vnet_prod,
-    azurerm_subnet.subnet_prod
+    azurerm_virtual_network.vnet,
+    azurerm_subnet.subnet
   ]
-
-  count               = 2
-  name                = "publicip_prod-${count.index}"
-  resource_group_name = azurerm_resource_group.rg_prod.name
-  location            = azurerm_resource_group.rg_prod.location
+  # count               = 2
+  for_each            = var.az_enviroment
+  name                = "publicip-${each.key}"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
   allocation_method   = "Static"
   tags                = var.deploy_tags
 }
 
 resource "azurerm_network_security_group" "nsg" {
-  name                = "nsg-${var.az_enviroment}"
-  location            = azurerm_resource_group.rg_prod.location
-  resource_group_name = azurerm_resource_group.rg_prod.name
-
-  security_rule {
-    name                       = "allPort80"
-    priority                   = 100
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "80"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
+  name                = "nsg-${var.az_project_name}"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
 
   security_rule {
     name                       = "allowSSH"
@@ -72,56 +60,45 @@ resource "azurerm_network_security_group" "nsg" {
   tags = var.deploy_tags
 }
 resource "azurerm_subnet_network_security_group_association" "nsg_association" {
-  subnet_id                 = azurerm_subnet.subnet_prod.id
+  subnet_id                 = azurerm_subnet.subnet.id
   network_security_group_id = azurerm_network_security_group.nsg.id
 }
 
 
-resource "azurerm_network_interface" "nic_prod" {
-  count               = 2
-  name                = "nic_prod-${count.index}"
-  resource_group_name = azurerm_resource_group.rg_prod.name
-  location            = azurerm_resource_group.rg_prod.location
+resource "azurerm_network_interface" "nic" {
+  # count               = 2
+  for_each            = var.az_enviroment
+  name                = "nic-${each.key}"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
   ip_configuration {
-    name                          = "internal_prod"
-    subnet_id                     = azurerm_subnet.subnet_prod.id
+    name                          = "internal_${each.key}"
+    subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = element(azurerm_public_ip.publicip_prod[*].id, count.index)
+    # public_ip_address_id          = element(azurerm_public_ip.publicip_prod[*].id, count.index)
+    public_ip_address_id = azurerm_public_ip.publicip[each.key].id
   }
   tags = var.deploy_tags
 }
 
-data "azurerm_subscription" "current_subscription" {}
-
-output "rg_dev_id" {
-  description = "URL del grupo de recursos"
-  value       = "https://portal.azure.com/#@${data.azurerm_subscription.current_subscription.tenant_id}/resource${azurerm_resource_group.rg_prod.id}"
-}
-
-output "publicIp" {
-  description = "Ip publica de la vm"
-  value       = azurerm_public_ip.publicip_prod[0].ip_address
-}
-
-output "privateIp" {
-  description = "Ip privada de la vm"
-  value       = azurerm_network_interface.nic_prod[0].private_ip_address
-}
 resource "azurerm_linux_virtual_machine" "linuxvm" {
-  count               = 2
-  name                = "vm-${var.az_enviroment}-${var.az_project_name}-${count.index}"
-  resource_group_name = azurerm_resource_group.rg_prod.name
-  location            = azurerm_resource_group.rg_prod.location
+  # count               = 2
+  # name                = "vm-${var.az_enviroment}-${var.az_project_name}-${count.index}"
+  for_each            = var.az_enviroment
+  name                = "vm-${var.az_project_name}-${each.key}"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
   size                = "Standard_B2s" #2cpus, 4GB ram
-  computer_name       = "linuxvm${count.index}"
+  computer_name       = "lx-${each.key}"
   admin_username      = "ubuntu"
   admin_ssh_key {
     username   = "ubuntu"
     public_key = var.myssh_key
   }
-  network_interface_ids = [element(azurerm_network_interface.nic_prod[*].id, count.index)]
+  # network_interface_ids = [element(azurerm_network_interface.nic_prod[*].id, count.index)]
+  network_interface_ids = [azurerm_network_interface.nic[each.key].id]
   os_disk {
-    name                 = "osdisk${count.index}"
+    name                 = "osdisk${each.key}"
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
   }
@@ -133,8 +110,38 @@ resource "azurerm_linux_virtual_machine" "linuxvm" {
     version   = "latest"
   }
 
-  #TODO: replace this with ansible
-  # custom_data = filebase64("${path.module}/dependencies/apache.txt")
-
   tags = var.deploy_tags
 }
+
+data "azurerm_subscription" "current_subscription" {}
+
+output "rg_URL" {
+  description = "URL del grupo de recursos"
+  value       = "https://portal.azure.com/#@${data.azurerm_subscription.current_subscription.tenant_id}/resource${azurerm_resource_group.rg.id}"
+}
+
+# iterador y objeto: salida
+# output "publicIP_two_input" {
+#   description = "String de conexion SSH por ambiente"
+#   value = [for env, ip in azurerm_public_ip.publicip: "[${env}]: ssh ubuntu@${ip.ip_address}" ]
+# }
+
+# mapear salida a un map
+output "sshconn" {
+  description = "String de conexion SSH por ambiente"
+  value = {for env, ip in azurerm_public_ip.publicip: env => "ssh ubuntu@${ip.ip_address}" }
+  sensitive = true
+}
+
+# show only keys
+output "sshconnKeys" {
+  description = "Show map keys only"
+  value = keys({for env, ip in azurerm_public_ip.publicip: env => "ssh ubuntu@${ip.ip_address}" })
+}
+
+#show only values
+output "sshconnValues" {
+  description = "Show map values only"
+  value = values({for env, ip in azurerm_public_ip.publicip: env => "ssh ubuntu@${ip.ip_address}" })
+}
+
