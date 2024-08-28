@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+RESOURCE_GROUP_NAME='rg-tfstate'
+STORAGE_ACCOUNT_NAME="tfstate$RANDOM"
+CONTAINER_NAME='tfstatefiles'
+STATE_FILE="terraform.tfstate"
+
+# create RG
+az group create --name $RESOURCE_GROUP_NAME --location eastus
+
+# create storage account inside RG
+az storage account create --resource-group $RESOURCE_GROUP_NAME --name $STORAGE_ACCOUNT_NAME --sku Standard_LRS --encryption-services blob
+
+# enable version control for blobs
+az storage account blob-service-properties update --resource-group $RESOURCE_GROUP_NAME --account-name $STORAGE_ACCOUNT_NAME --enable-versioning true
+
+# create blob container
+az storage container create --name $CONTAINER_NAME --account-name $STORAGE_ACCOUNT_NAME
+
+
+ACCOUNT_KEY=$(az storage account keys list --resource-group $RESOURCE_GROUP_NAME --account-name $STORAGE_ACCOUNT_NAME --query '[0].value' -o tsv)
+
+# add info to backend "azurerm" block
+echo "resource group name: $RESOURCE_GROUP_NAME"
+echo "storage account name: $STORAGE_ACCOUNT_NAME"
+echo "container name: $CONTAINER_NAME"
+echo "key: $STATE_FILE"
+echo "access_key: $ACCOUNT_KEY"
+
+export ARM_ACCESS_KEY=$ACCOUNT_KEY
