@@ -88,7 +88,7 @@ resource "azurerm_linux_virtual_machine" "linuxvm" {
   name                = "vm-${var.az_project_name}-${each.key}"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
-  size                = "Standard_B2s" #2cpus, 4GB ram
+  size                = "Standard_B1s" #1cpus, 4GB ram
   computer_name       = "lx-${each.key}"
   admin_username      = "ubuntu"
   admin_ssh_key {
