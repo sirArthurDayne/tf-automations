@@ -3,8 +3,6 @@
 echo "initialing..."
 terraform init
 
-
-
 echo "validating..."
 terraform validate
 EXIT_CODE=$?
@@ -14,4 +12,8 @@ if [ $EXIT_CODE -ne 0 ]; then
 fi
 
 echo "generating terraform plan..."
+terraform plan -var-file=prod.tfvars -out=tfplan
+
+echo "applying..."
+terraform apply tfplan
 exit 0

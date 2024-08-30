@@ -9,6 +9,18 @@ terraform {
       source  = "hashicorp/random"
       version = "3.6.2"
     }
+    local = {
+      source  = "hashicorp/local"
+      version = "2.5.1"
+    }
+    null = {
+      source  = "hashicorp/null"
+      version = ">= 3.1.0"
+    }
+    time = {
+      source  = "hashicorp/time"
+      version = ">= 0.7.2"
+    }
   }
   backend "azurerm" {
     resource_group_name  = "rg-tfstate"
@@ -26,6 +38,11 @@ provider "azurerm" {
 provider "random" {
   # Configuration options
 }
+
+provider "local" {
+  # Configuration options
+}
+
 # provider for another region
 # provider "azurerm" {
 #   skip_provider_registration = true

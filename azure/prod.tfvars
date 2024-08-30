@@ -2,7 +2,7 @@ az_region       = "eastus"
 az_vn           = "172.16.0.0/16"
 az_subnetrange  = "172.16.50.0/24"
 az_project_name = "blastwave-lab"
-az_enviroment   = ["dev", "prod", "qa"]
+#az_enviroment   = ["dev", "prod"]
 deploy_tags = {
   deploy_method = "terraform"
 }

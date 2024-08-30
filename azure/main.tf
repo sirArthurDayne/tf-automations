@@ -10,26 +10,26 @@ resource "azurerm_resource_group" "rg" {
   tags     = var.deploy_tags
 }
 
-resource "azurerm_virtual_network" "vnet" {
-  name                = "vn-${var.az_project_name}"
-  address_space       = [var.az_vn]
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
-  tags                = var.deploy_tags
+module "vnet" {
+  source             = "./modules/vnet"
+  vnet_name          = "vnet-${var.az_project_name}"
+  vnet_address_space = [var.az_vn]
+  vnet_rg_name       = azurerm_resource_group.rg.name
+  vnet_rg_location   = azurerm_resource_group.rg.location
+  vnet_tags          = var.deploy_tags
 }
-
 
 resource "azurerm_subnet" "subnet" {
   name                 = "subnet-${var.az_project_name}"
   resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vnet.name
+  virtual_network_name = module.vnet.vnet_name
   address_prefixes     = [var.az_subnetrange]
 }
 
 resource "azurerm_public_ip" "publicip" {
   #explicits add dependency to this resource but doesnt access any of that resources data in its arguments.
   depends_on = [
-    azurerm_virtual_network.vnet,
+    module.vnet,
     azurerm_subnet.subnet
   ]
   # count               = 2
@@ -48,12 +48,23 @@ resource "azurerm_network_security_group" "nsg" {
 
   security_rule {
     name                       = "allowSSH"
-    priority                   = 110
+    priority                   = 100
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+  security_rule {
+    name                       = "allowHTTP"
+    priority                   = 110
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_ranges    = ["80", "8080"]
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
@@ -110,5 +121,47 @@ resource "azurerm_linux_virtual_machine" "linuxvm" {
     version   = "latest"
   }
 
-  tags = var.deploy_tags
+  custom_data = filebase64("${path.module}/dependencies/apache.txt")
+  tags        = var.deploy_tags
+
+  # connection {
+  #   type        = "ssh"
+  #   host        = self.public_ip_address
+  #   user        = self.admin_username
+  #   private_key = file("~/.ssh/tf-tests")
+  # }
+
+  # provisioner "file" {
+  #   source      = "./dependencies/apache.txt"
+  #   destination = "/tmp/apache.txt"
+  #   # on_failure = continue
+  # }
+  #
+  # provisioner "remote-exec" {
+  #   inline = ["sleep 120", "sudo cp /tmp/apache.txt /var/www/html/apache.txt"]
+  # }
+
+  provisioner "local-exec" {
+    when        = destroy
+    command     = "echo destroytime: `date` >> destroytime.txt"
+    working_dir = "dependencies/"
+  }
+}
+
+#terraform import azurerm_resource_group.import_rg -var-file=prod.tfvars /subscriptions/3d18c0a2-c84f-4be0-8a9f-fe22f2c61b32/resourceGroups/rg-test-import
+resource "azurerm_resource_group" "import_rg" {
+  name     = "rg-test-import"
+  location = "eastus"
+  tags = {
+    "deployment" = "import"
+  }
+}
+
+# generate inv for Ansible provisioning
+resource "local_file" "inventory" {
+  filename = "./inventory.yml"
+  content  = <<EOF
+[cfg]
+${azurerm_public_ip.publicip["dev"].ip_address}
+EOF
 }
