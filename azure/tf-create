@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+echo "initialing..."
+terraform init
+
+
+
+echo "validating..."
+terraform validate
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+    echo "[ERROR]: validation failed..."
+    exit $EXIT_CODE
+fi
+
+echo "generating terraform plan..."
+exit 0
