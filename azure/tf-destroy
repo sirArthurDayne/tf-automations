@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+echo "destroying infra..."
+terraform destroy -var-file=prod.tfvars -auto-approve
