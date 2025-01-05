@@ -41,35 +41,36 @@ resource "azurerm_public_ip" "publicip" {
   tags                = var.deploy_tags
 }
 
+locals {
+  open_ports = ["22", "80", "8080", "443"]
+}
+
 resource "azurerm_network_security_group" "nsg" {
   name                = "nsg-${var.az_project_name}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
-  security_rule {
-    name                       = "allowSSH"
-    priority                   = 100
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "22"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-  security_rule {
-    name                       = "allowHTTP"
-    priority                   = 110
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_ranges    = ["80", "8080"]
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
+  dynamic "security_rule" {
+    for_each = local.open_ports
+    content {
+      name                       = "inbound-rule-${security_rule.key}"
+      description                = "Open port ${security_rule.value} to outside connections"
+      priority                   = sum([100, security_rule.key])
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = security_rule.value
+      source_address_prefix      = "*"
+      destination_address_prefix = "*"
+    }
+
   }
   tags = var.deploy_tags
 }
+# resource "azurerm_network_security_rule" "nsg_rules" {
+#
+# }
 resource "azurerm_subnet_network_security_group_association" "nsg_association" {
   subnet_id                 = azurerm_subnet.subnet.id
   network_security_group_id = azurerm_network_security_group.nsg.id

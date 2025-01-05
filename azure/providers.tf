@@ -22,11 +22,20 @@ terraform {
       version = ">= 0.7.2"
     }
   }
-  backend "azurerm" {
-    resource_group_name  = "rg-tfstate"
-    storage_account_name = "tfstate23952"
-    container_name       = "tfstatefiles"
-    key                  = "terraform.tfstate"
+  # backend "azurerm" {
+  #   resource_group_name  = "rg-tfstate"
+  #   storage_account_name = "tfstate23952"
+  #   container_name       = "tfstatefiles"
+  #   key                  = "terraform.tfstate"
+  # }
+  cloud {
+    organization = "blastwave-labs"
+
+    workspaces {
+      name = "learning-lab"
+    }
+    #token = "" token inside .terraformrc file
+    #hostname = "" hostname insiide .terraformrc file
   }
 }
 # Configuration options
