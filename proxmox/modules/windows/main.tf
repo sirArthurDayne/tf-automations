@@ -47,25 +47,19 @@ resource "proxmox_virtual_environment_vm" "windows_template" {
     }
   disk {
     datastore_id = "local-zfs"
-    file_id      = var.windows_image_local
-    # file_format  = ""
     interface    = "scsi0"
     iothread     = false
-    discard      = "ignore"
+    file_format  = "raw"
     size         = 40   #Gigabytes
     ssd          = true #ssd emulation
   }
   cdrom {
     enabled = true
-    file_id      = "local:iso/virtio-win-0.1.262.iso"
-    interface    = "ide0"
+    file_id      = var.windows_image_local
+    interface    = "ide2"
   }
   # video signal
   vga {
     type = "std"
-  }
-  #serial
-  serial_device {
-    device = "socket"
   }
 }
