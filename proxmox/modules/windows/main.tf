@@ -2,7 +2,7 @@
 resource "proxmox_virtual_environment_vm" "windows_template" {
   name        = "windows-template"
   description = "Windows Server 2022 template for AD deployments"
-  vm_id       = 5001
+  vm_id       = 6000
   node_name   = var.pve_target_node
   template    = true
   started     = false # start after creation
@@ -38,8 +38,8 @@ resource "proxmox_virtual_environment_vm" "windows_template" {
   efi_disk {
         datastore_id = "local-zfs"
         type = "4m"
-        file_format = "iso"
-        pre_enrolled_keys = 1
+        #file_format = "raw" #defaults to raw
+        pre_enrolled_keys = true
     }
     tpm_state {
         datastore_id = "local-zfs"
@@ -48,22 +48,17 @@ resource "proxmox_virtual_environment_vm" "windows_template" {
   disk {
     datastore_id = "local-zfs"
     file_id      = var.windows_image_local
-    file_format  = "qcow2"
+    # file_format  = ""
     interface    = "scsi0"
     iothread     = false
     discard      = "ignore"
     size         = 40   #Gigabytes
     ssd          = true #ssd emulation
   }
-  disk {
-    datastore_id = "local-zfs"
+  cdrom {
+    enabled = true
     file_id      = "local:iso/virtio-win-0.1.262.iso"
-    file_format  = "qcow2"
-    interface    = "scsi0"
-    iothread     = false
-    discard      = "ignore"
-    size         = 40   #Gigabytes
-    ssd          = true #ssd emulation
+    interface    = "ide0"
   }
   # video signal
   vga {

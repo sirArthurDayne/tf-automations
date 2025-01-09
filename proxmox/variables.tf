@@ -43,3 +43,8 @@ variable "vm_ssh_key" {
   description = "llave SSH de conexion contra las VMs"
   default     = ""
 }
+
+variable "windows_local_image" {
+  description = "imagen para windows template"
+  default     = ""
+}
